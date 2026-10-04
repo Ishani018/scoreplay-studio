@@ -126,7 +126,7 @@ export default function App() {
     pausePlayback(); setElapsed(0); elapsedRef.current = 0;
     try {
       let sourceXml: string;
-      let kind: LibraryItem['kind'];
+      let kind: 'pdf' | 'musicxml';
       if (extension === 'pdf' || extension === 'mxl') {
         setOmrMessage(extension === 'pdf' ? 'Reading printed notation on the score server…' : 'Opening compressed MusicXML…');
         const form = new FormData(); form.append('file', file);
