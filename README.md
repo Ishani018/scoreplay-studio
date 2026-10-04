@@ -1,6 +1,6 @@
 # Scoreplay Studio
 
-A full-stack sheet-music player. Import MusicXML or MXL directly, or upload a printed-score PDF for local optical music recognition. View the engraved notation, listen to all score parts with a sampled grand piano, change tempo and transpose the written score.
+A full-stack sheet-music player. Import MusicXML or MXL directly, or upload a printed-score PDF for local optical music recognition. View the engraved notation, follow a moving playhead through the current notes and measures, listen to all score parts with a sampled grand piano, change tempo and transpose the written score.
 
 ## Run the complete app
 
