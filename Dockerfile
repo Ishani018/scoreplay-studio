@@ -12,6 +12,7 @@ ARG AUDIVERIS_VERSION=5.11.0
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl ghostscript python3 python3-venv python3-pip \
     libasound2t64 libfontconfig1 libfreetype6 libgtk-3-0t64 libx11-6 libxext6 libxrender1 libxtst6 \
+    && mkdir -p /usr/share/applications /usr/share/desktop-directories /usr/local/share/applications /usr/local/share/desktop-directories \
     && curl -fsSL "https://github.com/Audiveris/audiveris/releases/download/${AUDIVERIS_VERSION}/Audiveris-${AUDIVERIS_VERSION}-ubuntu24.04-x86_64.deb" -o /tmp/audiveris.deb \
     && apt-get install -y /tmp/audiveris.deb \
     && rm -f /tmp/audiveris.deb \
