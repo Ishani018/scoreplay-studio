@@ -2,7 +2,7 @@ export type NoteEvent = { midi: number; beat: number; length: number; part: numb
 export type ScoreData = { title: string; composer: string; parts: string[]; events: NoteEvent[]; beats: number; bpm: number };
 const children = (element: Element, name: string) => Array.from(element.children).filter((item) => item.localName === name);
 const child = (element: Element | null, name: string) => element ? children(element, name)[0] ?? null : null;
-const value = (element: Element | null) => element?.textContent?.trim() ?? '';
+const value = (element: Element | null | undefined) => element?.textContent?.trim() ?? '';
 const positive = (element: Element | null, fallback: number) => { const number = Number(value(element)); return Number.isFinite(number) && number > 0 ? number : fallback; };
 const steps: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
