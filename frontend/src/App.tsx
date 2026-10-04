@@ -40,6 +40,7 @@ export default function App() {
   const score = useMemo(() => parseMusicXml(xml), [xml]);
   const renderedXml = useMemo(() => transposeMusicXml(xml, transpose), [xml, transpose]);
   const duration = Math.max(1, score.beats * 60 / tempo);
+  const currentBeat = Math.min(score.beats, elapsed * tempo / 60);
 
   useEffect(() => { elapsedRef.current = elapsed; }, [elapsed]);
   useEffect(() => {
@@ -114,7 +115,15 @@ export default function App() {
   function togglePlayback() { if (playing) pausePlayback(); else void startPlayback(elapsedRef.current); }
 
   function changeTempo(value: number) {
-    if (playing) pausePlayback();
+    const seconds = playing
+      ? offsetRef.current + (performance.now() - startRef.current) / 1000
+      : elapsedRef.current;
+    const beat = Math.min(score.beats, seconds * tempo / 60);
+    if (playing) {
+      clearTimer(); sampler.current?.releaseAll(); setPlaying(false);
+    }
+    const next = beat * 60 / value;
+    elapsedRef.current = next; offsetRef.current = next; setElapsed(next);
     setTempo(value);
   }
 
@@ -170,7 +179,7 @@ export default function App() {
             <div className="score-heading"><div><div className="score-kicker">{sourceKind === 'pdf' ? 'RECOGNIZED PDF SCORE' : sourceKind === 'musicxml' ? 'MUSICXML SCORE' : 'ORIGINAL PRACTICE SCORE'}</div><h2>{title}</h2><div className="score-byline">{composer}<i/> {score.parts.length} {score.parts.length === 1 ? 'part' : 'parts'}<i/> {fileName}</div></div><div className="score-badges"><span className="quality"><span/> SCORE READY</span><button className="round-tool" aria-label="Open score file" onClick={() => fileInput.current?.click()}>↗</button></div></div>
             {sourceKind === 'pdf' && <div className="recognition-note"><span>✦</span><div><b>Read from your PDF</b><small>Optical recognition can miss notes. Review the score while it plays.</small></div></div>}
             <div className={`score-scroll ${dragging ? 'dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const file = event.dataTransfer.files?.[0]; if (file) void loadFile(file); }}>
-              <ScoreView xml={renderedXml} title={title} transpose={transpose}/>
+              <ScoreView xml={renderedXml} title={title} transpose={transpose} currentBeat={currentBeat} playing={playing}/>
               {dragging && <div className="drop-cover"><span>↓</span><b>Drop your score here</b></div>}
             </div>
             <div className="score-card-foot"><span><b>♫</b> Sheet notation rendered from the score file</span><button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>PLAYBACK CONTROLS <span>↓</span></button></div>
