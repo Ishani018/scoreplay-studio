@@ -67,8 +67,8 @@ export default function ScoreView({ xml, title, transpose, currentBeat, playing 
 
     return () => {
       cancelled = true;
-      display.cursor.hide();
-      display.dispose();
+      display.cursor?.hide();
+      (display as unknown as { dispose?: () => void }).dispose?.();
       renderer.current = null;
       cursorPositions.current = [];
       target.replaceChildren();
