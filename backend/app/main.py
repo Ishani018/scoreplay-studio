@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
 import subprocess
@@ -14,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 MAX_UPLOAD = 20 * 1024 * 1024
 TIMEOUT_SECONDS = 300
+OMR_SEMAPHORE = asyncio.Semaphore(1)
 ROOT = Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
 app = FastAPI(title="Scoreplay Studio API", version="1.0.0")
@@ -89,25 +91,26 @@ async def recognize(file: UploadFile = File(...)):
     if not shutil.which("gs"):
         raise HTTPException(status_code=503, detail="Ghostscript is needed to read this PDF.")
 
-    with tempfile.TemporaryDirectory(prefix="scoreplay-omr-") as folder:
-        work = Path(folder)
-        source = work / "score.pdf"
-        output = work / "recognized"
-        output.mkdir()
-        source.write_bytes(content)
-        command = [audiveris, "-batch", "-transcribe", "-export", "-output", str(output), "--", str(source)]
-        try:
-            result = await __import__("asyncio").to_thread(
-                subprocess.run, command, capture_output=True, text=True, check=False, timeout=TIMEOUT_SECONDS,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise HTTPException(status_code=408, detail="Score recognition timed out. Try fewer pages or a smaller PDF.") from exc
-        exports = sorted([*output.rglob("*.mxl"), *output.rglob("*.xml")])
-        if result.returncode != 0 or not exports:
-            detail = (result.stderr or result.stdout or "No MusicXML export was produced.").strip()[-800:]
-            raise HTTPException(status_code=422, detail=f"The score reader could not recognize this PDF. Clear, printed scores work best. {detail}")
-        recognized = validate_musicxml(read_mxl(exports[0]) if exports[0].suffix.lower() == ".mxl" else exports[0].read_text(encoding="utf-8-sig"))
-        return {"musicxml": recognized}
+    async with OMR_SEMAPHORE:
+        with tempfile.TemporaryDirectory(prefix="scoreplay-omr-") as folder:
+            work = Path(folder)
+            source = work / "score.pdf"
+            output = work / "recognized"
+            output.mkdir()
+            source.write_bytes(content)
+            command = [audiveris, "-batch", "-swap", "-transcribe", "-export", "-output", str(output), "--", str(source)]
+            try:
+                result = await asyncio.to_thread(
+                    subprocess.run, command, capture_output=True, text=True, check=False, timeout=TIMEOUT_SECONDS,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise HTTPException(status_code=408, detail="Score recognition timed out. Try fewer pages or a smaller PDF.") from exc
+            exports = sorted([*output.rglob("*.mxl"), *output.rglob("*.xml")])
+            if result.returncode != 0 or not exports:
+                detail = (result.stderr or result.stdout or "No MusicXML export was produced.").strip()[-800:]
+                raise HTTPException(status_code=422, detail=f"The score reader could not recognize this PDF. Clear, printed scores work best. {detail}")
+            recognized = validate_musicxml(read_mxl(exports[0]) if exports[0].suffix.lower() == ".mxl" else exports[0].read_text(encoding="utf-8-sig"))
+            return {"musicxml": recognized}
 
 
 if DIST.exists():
